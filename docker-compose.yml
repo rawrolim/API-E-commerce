@@ -1,0 +1,47 @@
+services:
+  app:
+    image: template_api:1.0.0
+    build: 
+      context: .
+    container_name: api_ecommerce
+    develop:
+      watch:
+        - action: sync
+          path: ./
+          target: /app
+          ignore:
+            - node_modules/
+            - database/data/
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+      - redis
+    environment:
+      POSTGRES_USER: rawrolim
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: database
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dlmaks-d982n93#LAKSDLl!KO9mj0j.asodnj@s12
+      STRIPE_KEY: sk_test_51Q7hR4Rt2hEb3quL7h5LBZyh36TgGraCSTlkr3CGNHIjxP6qOfFUCS0nQdxTV0ww0F8g6agHv5YUFxTYpy7QJobF00lviDn8ts
+      FRONTEND_URL: http://localhost:3000
+  database:
+    image: postgres:latest
+    container_name: postgre_ecommerce
+    restart: always
+    environment:
+      POSTGRES_USER: rawrolim
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+  redis:
+    image: redis:latest
+    container_name: redis_ecommerce
+    ports:
+      - "6379:6379"
