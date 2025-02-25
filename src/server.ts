@@ -4,11 +4,10 @@ import productRoutes from './routes/products';
 import adminRoutes from './routes/admin';
 import orderRoutes from './routes/orders';
 import { authAdminMiddleware, authMiddleware } from './middlewares/auth';
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import checkoutRoutes from './routes/checkout';
 
-require('dotenv').config();
-
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

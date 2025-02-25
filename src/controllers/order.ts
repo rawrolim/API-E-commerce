@@ -26,15 +26,21 @@ export async function updateProductOnOrder(req: Request, res: Response) {
 
         if (!body.product_id)
             throw new Error("Product not informed");
+        if (!body.address_id)
+            throw new Error("Address not informed");
         if (!body.qtd)
             throw new Error("Quantity of the product not informed");
+
+        const addressExist = user.address.find(a => a.id == body.address_id);
+        if(!addressExist)
+            throw new Error("The address don't exist for this user");
 
         let orderOpened = user.orders.find(order => order.status == 'OPEN');
 
         if (orderOpened) {
-            await query("UPDATE orders SET updated_at = $1 WHERE id = $2", [new Date(), orderOpened.id]);
+            await query("UPDATE orders SET updated_at = $1, address_id = $2 WHERE id = $3", [new Date(), body.address_id, orderOpened.id]);
         } else {
-            await query("INSERT INTO orders(user_id) VALUES($1)", [user.id]);
+            await query("INSERT INTO orders(user_id, address_id) VALUES($1, $2)", [user.id, body.address_id]);
             const order: OrderInterface[] = await query("SELECT * FROM orders WHERE user_id = $1 AND status = 'OPEN' LIMIT 1", [user.id]);
             user.orders.push(order[0]);
             orderOpened = order[0];

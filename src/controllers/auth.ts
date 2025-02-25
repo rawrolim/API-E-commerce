@@ -7,7 +7,7 @@ import UserInterface from "../interfaces/UserInterface";
 import OrderInterface from "../interfaces/OrderInterface";
 import OrderProductInterface from "../interfaces/OrderProductInterface";
 import ProductInterface from "../interfaces/ProductInterface";
-import Stripe from "stripe";
+import AddressInterface from "../interfaces/AddressInterface";
 
 const tempo = 60 * 60;
 
@@ -71,7 +71,9 @@ export async function createUser(req: Request, res: Response) {
             throw new Error("Need to inform the name");
         if (!body.password)
             throw new Error("Need to inform the password");
-
+        if (!body.tel)
+            throw new Error("Need to inform the tel");
+        
         const emailExist = await query("SELECT id FROM users WHERE email = $1",[body.email]);
         if(emailExist.length > 0)
             throw new Error("Duplicated email");
@@ -82,12 +84,13 @@ export async function createUser(req: Request, res: Response) {
                 email,
                 password,
                 salt,
-                access_token
-            ) VALUES($1,$2,$3,$4,$5)
+                access_token,
+                tel
+            ) VALUES($1,$2,$3,$4,$5,$6)
         `;
         const salt = generateToken(2);
         const password = jwt.sign(md5(body.password), salt)
-        let values = [body.name, body.email, password, salt, generateToken(5)]
+        let values = [body.name, body.email, password, salt, generateToken(5),body.tel]
         await query(sql, values);
 
         //Need create a function to send email
@@ -106,15 +109,18 @@ export async function updateUser(req: Request, res: Response) {
             throw new Error("Need to inform the email");
         if (!body.name)
             throw new Error("Need to inform the name");
+        if (!body.tel)
+            throw new Error("Need to inform the tel");
 
         let sql = `
             UPDATE users SET
                 name = $1,
                 email = $2,
+                tel = $3
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3`;
+            WHERE id = $4`;
 
-        await query(sql, [body.name, body.email, req.body.user.id]);
+        await query(sql, [body.name, body.email, body.tel,req.body.user.id]);
 
         res.json().status(200);
     } catch (err: any) {
@@ -136,6 +142,7 @@ export async function deleteUser(req: Request, res: Response) {
 }
 
 export async function getUserById(id: number) {
+    let rs_address: AddressInterface;
     let rs_productInterface: OrderProductInterface[];
     let rs_product: ProductInterface[];
 
@@ -151,7 +158,11 @@ export async function getUserById(id: number) {
     const rs_orders: OrderInterface[] = await query(sql, [user.id]);
 
     for(let i = 0; i < rs_orders.length; i++){
-        const sql = `SELECT * FROM order_products WHERE order_id = $1`;
+        sql = `SELECT * FROM address WHERE id = $1`;
+        rs_address = (await query(sql, [rs_orders[i].address_id]))[0];
+        rs_orders[i].address = rs_address;
+
+        sql = `SELECT * FROM order_products WHERE order_id = $1`;
         rs_productInterface = await query(sql, [rs_orders[i].id]);
         rs_orders[i].products = [...rs_productInterface];
 
@@ -164,6 +175,11 @@ export async function getUserById(id: number) {
     }
 
     user.orders = [...rs_orders];
+
+    sql = `SELECT * FROM address WHERE user_id = $1 AND active = TRUE`
+    const rs_addresses: AddressInterface[] = await query(sql,[user.id]);
+
+    user.address = [...rs_addresses];
 
     return user;
 }

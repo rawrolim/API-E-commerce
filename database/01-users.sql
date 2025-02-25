@@ -3,6 +3,7 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password TEXT NULL,
+    tel TEXT NULL,
     salt TEXT NULL,
     is_admin BOOLEAN DEFAULT false,
     access_token TEXT NULL,
